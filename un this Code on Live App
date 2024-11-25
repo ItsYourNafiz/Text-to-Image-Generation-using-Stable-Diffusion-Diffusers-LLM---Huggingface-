@@ -1,0 +1,66 @@
+# Run this Code on Live App
+
+from diffusers import StableDiffusion3Pipeline, StableDiffusionPipeline
+import torch
+import matplotlib.pyplot as plt
+from huggingface_hub import login
+import streamlit as st
+
+# Install necessary libraries if not already installed
+# Note: These commands are commented out as they should only run once.
+# !pip install diffusers
+# !pip install transformers
+# !pip install accelerate
+# !pip install scipy
+# !pip install gradio
+
+# Check for torch version (optional)
+# !pip show torch
+
+# Hugging Face login (replace with your token)
+# login(token="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")
+
+
+# Model IDs
+model_id1 = "dreamlike-art/dreamlike-photoreal-2.0"
+model_id2 = "stabilityai/stable-diffusion-3.5-large"
+
+# Load the pipeline (using model_id1 for now)
+@st.cache_resource() # Cache the model for faster loading
+def load_model():
+    pipe = StableDiffusionPipeline.from_pretrained(model_id1, torch_dtype=torch.float16)
+    pipe = pipe.to("cuda")
+    return pipe
+
+pipe = load_model()
+
+
+def generate_image(pipe, prompt, params):
+    images = pipe(prompt, **params).images
+    return images
+
+
+st.title("Image Generation App")
+
+prompt = st.text_input("Enter your prompt", "A beautiful girl playing festival of colors")
+num_inference_steps = st.slider("Inference Steps", 10, 100, 50)
+num_images = st.slider("Number of Images", 1, 4, 1)
+width = st.slider("Width", 512, 1024, 512)
+height = st.slider("Height", 512, 1024, 512)
+negative_prompt = st.text_input("Negative Prompt", "ugly, distorted, low quality")
+
+
+params = {
+    "num_inference_steps": num_inference_steps,
+    "num_images_per_prompt": num_images,
+    "width": width,
+    "height": height,
+    "negative_prompt": negative_prompt,
+}
+
+if st.button("Generate Image"):
+    images = generate_image(pipe, prompt, params)
+
+    cols = st.columns(len(images))
+    for i, img in enumerate(images):
+      cols[i].image(img, caption=f"Image {i+1}")
